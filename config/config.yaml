@@ -1,0 +1,95 @@
+environment: production
+
+k8s:
+  in_cluster: true
+  contexts:
+    - name: prod-cluster
+      enabled: true
+
+aws:
+  enabled: true
+  regions:
+    - us-east-1
+    - us-west-2
+  resources:
+    rds:
+      enabled: true
+      check_interval: 300
+    kinesis:
+      enabled: true
+      check_interval: 300
+    ec2:
+      enabled: true
+
+azure:
+  enabled: true
+  subscriptions:
+    - subscription_id: ${AZURE_SUBSCRIPTION_ID}
+      enabled: true
+  resources:
+    database:
+      enabled: true
+    eventhubs:
+      enabled: true
+
+detection:
+  interval: 300  # Run detection every 5 minutes
+  parallel_workers: 5
+
+remediation:
+  enabled: true
+  auto_fix_severity:
+    - low
+  require_approval_severity:
+    - medium
+    - high
+  max_concurrent_fixes: 3
+
+github:
+  enabled: true
+  organization: your-org
+  repositories:
+    k8s-manifests:
+      name: k8s-manifests
+      branch: main
+      auto_merge_labels:
+        - ops-agent-auto
+    terraform-aws:
+      name: terraform-aws
+      branch: main
+    terraform-azure:
+      name: terraform-azure
+      branch: main
+
+notifications:
+  teams:
+    enabled: true
+    webhook_url: ${TEAMS_WEBHOOK_URL}
+    channels:
+      low: ops-notifications
+      medium: ops-alerts
+      high: sre-urgent
+
+  email:
+    enabled: true
+    smtp_host: ${SMTP_HOST}
+    smtp_port: 587
+    from_email: ops-agent@example.com
+    recipients:
+      low: [ops-team@example.com]
+      medium: [ops-team@example.com, sre-team@example.com]
+      high: [sre-team@example.com, oncall@example.com]
+
+grafana:
+  enabled: true
+  url: ${GRAFANA_URL}
+  api_key: ${GRAFANA_API_KEY}
+
+logging:
+  level: INFO
+  format: json
+
+metrics:
+  enabled: true
+  port: 9090
+  path: /metrics

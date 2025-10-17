@@ -1,0 +1,32 @@
+# Issue: Excessive replica count for test environment
+# Severity: MEDIUM
+# Expected Fix: Reduce replicas to 2-3
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: excessive-replicas-app
+  namespace: test-app
+  labels:
+    app: excessive-replicas-app
+    test-issue: excessive-replicas
+spec:
+  replicas: 20  # ❌ Too many replicas for test environment!
+  selector:
+    matchLabels:
+      app: excessive-replicas-app
+  template:
+    metadata:
+      labels:
+        app: excessive-replicas-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.25-alpine
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"

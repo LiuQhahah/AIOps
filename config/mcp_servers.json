@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "kubernetes": {
+      "command": "mcp-server-kubernetes",
+      "args": [],
+      "env": {
+        "KUBECONFIG": "~/.kube/config"
+      }
+    },
+    "github": {
+      "command": "mcp-server-github",
+      "args": [],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "aws": {
+      "command": "mcp-server-aws",
+      "args": [],
+      "env": {
+        "AWS_PROFILE": "default",
+        "AWS_REGION": "us-east-1"
+      }
+    },
+    "teams": {
+      "command": "mcp-server-teams",
+      "args": [],
+      "env": {
+        "TEAMS_WEBHOOK_URL": "${TEAMS_WEBHOOK_URL}"
+      }
+    }
+  }
+}

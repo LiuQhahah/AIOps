@@ -1,0 +1,32 @@
+# Issue: Over-provisioned resources (requesting too much)
+# Severity: LOW
+# Expected Fix: Reduce resource requests to reasonable values
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: over-provisioned-app
+  namespace: test-app
+  labels:
+    app: over-provisioned-app
+    test-issue: over-provisioned
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: over-provisioned-app
+  template:
+    metadata:
+      labels:
+        app: over-provisioned-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.25-alpine
+        resources:
+          requests:
+            memory: "8Gi"   # ❌ Way too much for nginx!
+            cpu: "4000m"    # ❌ 4 CPUs for a simple nginx
+          limits:
+            memory: "16Gi"  # ❌ Excessive
+            cpu: "8000m"    # ❌ Excessive

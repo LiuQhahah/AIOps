@@ -1,0 +1,71 @@
+environment: local
+
+k8s:
+  in_cluster: false
+  kubeconfig: ~/.kube/config
+  contexts:
+    - name: kind-ops-agent-test
+      enabled: true
+
+aws:
+  enabled: true
+  profile: default  # Use aws configure profile
+  regions:
+    - us-east-1
+  # Optional: Use LocalStack for local testing
+  # endpoint_url: http://localhost:4566
+  resources:
+    rds:
+      enabled: true
+      check_interval: 60
+    kinesis:
+      enabled: true
+      check_interval: 60
+
+azure:
+  enabled: true
+  # Uses az login credentials
+  subscriptions:
+    - subscription_id: ${AZURE_SUBSCRIPTION_ID}
+      enabled: true
+  resources:
+    database:
+      enabled: false  # Disable expensive resources in local mode
+    eventhubs:
+      enabled: false
+
+detection:
+  interval: 60  # Check every minute for faster testing
+  parallel_workers: 2
+
+remediation:
+  enabled: true
+  auto_fix_severity:
+    - low
+    - medium
+  require_approval_severity:
+    - high
+  max_concurrent_fixes: 1
+
+github:
+  enabled: false  # Use local git repo instead
+  mode: local
+  local_repo_path: ./local-dev/test-manifests
+
+notifications:
+  teams:
+    enabled: false  # Disable in local mode
+  email:
+    enabled: false  # Disable in local mode
+
+grafana:
+  enabled: false  # Optional: enable if running local Grafana
+
+logging:
+  level: DEBUG
+  format: text
+
+metrics:
+  enabled: true
+  port: 9090
+  path: /metrics

@@ -1,0 +1,34 @@
+# Issue: Multiple issues combined
+# - No resources
+# - No probes
+# - Excessive replicas
+# - Running as root
+# Severity: HIGH
+# Expected Fix: Fix all issues
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multiple-issues-app
+  namespace: test-app
+  labels:
+    app: multiple-issues-app
+    test-issue: multiple-issues
+spec:
+  replicas: 15  # ❌ Too many
+  selector:
+    matchLabels:
+      app: multiple-issues-app
+  template:
+    metadata:
+      labels:
+        app: multiple-issues-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest  # ❌ Should use specific version
+        ports:
+        - containerPort: 80
+        # ❌ No resources
+        # ❌ No probes
+        # ❌ No security context

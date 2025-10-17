@@ -1,0 +1,47 @@
+# Issue: No liveness/readiness probes
+# Severity: MEDIUM
+# Expected Fix: Add health check probes
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: no-probes-app
+  namespace: test-app
+  labels:
+    app: no-probes-app
+    test-issue: missing-probes
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: no-probes-app
+  template:
+    metadata:
+      labels:
+        app: no-probes-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        # ❌ Missing probes!
+        # livenessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: 80
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 10
+        # readinessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: 80
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 5
