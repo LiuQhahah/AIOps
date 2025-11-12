@@ -27,16 +27,16 @@ class Platform(str, Enum):
 class Issue:
     """Represents a detected configuration issue."""
 
-    # Identification
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    # Required fields (no defaults)
     platform: Platform
     resource_type: str
     resource_name: str
-
-    # Issue details
     severity: Severity
     title: str
     description: str
+
+    # Identification (with defaults)
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     detected_at: datetime = field(default_factory=datetime.utcnow)
 
     # Context

@@ -49,7 +49,7 @@ class OpsAgent:
         config_uvicorn = uvicorn.Config(
             self.app,
             host="0.0.0.0",
-            port=8080,
+            port=18080,
             log_config=None,  # Use structlog
         )
         server = uvicorn.Server(config_uvicorn)
