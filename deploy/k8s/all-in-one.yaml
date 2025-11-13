@@ -1,0 +1,193 @@
+---
+# All-in-One Kubernetes 部署清单
+# 包含 OpsAgent 所需的所有资源（除 Secret）
+# 使用: kubectl apply -f all-in-one.yaml
+
+# ============================================================
+# Namespace
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ops-system
+  labels:
+    name: ops-system
+    app: opsagent
+
+---
+# ============================================================
+# ServiceAccount
+# ============================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opsagent
+  namespace: ops-system
+  labels:
+    app: opsagent
+
+---
+# ============================================================
+# ClusterRole - 只读权限
+# ============================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: opsagent-reader
+  labels:
+    app: opsagent
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/status", "services", "endpoints", "configmaps", "namespaces", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+
+---
+# ============================================================
+# ClusterRoleBinding
+# ============================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: opsagent-reader-binding
+  labels:
+    app: opsagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: opsagent-reader
+subjects:
+  - kind: ServiceAccount
+    name: opsagent
+    namespace: ops-system
+
+---
+# ============================================================
+# ConfigMap - 应用配置
+# ============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opsagent-config
+  namespace: ops-system
+  labels:
+    app: opsagent
+data:
+  config.yaml: |
+    environment: production
+    k8s:
+      in_cluster: true
+      contexts:
+        - name: in-cluster
+          enabled: true
+    detection:
+      interval: 300
+      parallel_workers: 5
+    remediation:
+      enabled: false
+      auto_fix_severity: [low]
+      require_approval_severity: [medium, high]
+    logging:
+      level: INFO
+      format: json
+    metrics:
+      enabled: true
+      port: 9090
+
+---
+# ============================================================
+# Deployment
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opsagent
+  namespace: ops-system
+  labels:
+    app: opsagent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opsagent
+  template:
+    metadata:
+      labels:
+        app: opsagent
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: opsagent
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: opsagent
+          image: opsagent:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 18080
+            - name: metrics
+              containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 18080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 18080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: opsagent-config
+
+---
+# ============================================================
+# Service
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: opsagent
+  namespace: ops-system
+  labels:
+    app: opsagent
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  type: ClusterIP
+  selector:
+    app: opsagent
+  ports:
+    - name: http
+      port: 80
+      targetPort: 18080
+    - name: metrics
+      port: 9090
+      targetPort: 9090

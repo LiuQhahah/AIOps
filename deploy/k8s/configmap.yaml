@@ -1,0 +1,74 @@
+---
+# ConfigMap for OpsAgent configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opsagent-config
+  namespace: ops-system
+  labels:
+    app: opsagent
+    component: ops-automation
+data:
+  config.yaml: |
+    environment: production
+
+    k8s:
+      in_cluster: true  # 在集群内运行时设置为 true
+      contexts:
+        - name: in-cluster
+          enabled: true
+
+    aws:
+      enabled: false  # 如需检测 AWS 资源，设置为 true
+      regions:
+        - us-east-1
+      resources:
+        rds:
+          enabled: false
+          check_interval: 300
+        kinesis:
+          enabled: false
+          check_interval: 300
+
+    azure:
+      enabled: false  # 如需检测 Azure 资源，设置为 true
+      subscriptions: []
+
+    detection:
+      interval: 300  # 检测间隔：5分钟
+      parallel_workers: 5
+
+    remediation:
+      enabled: false  # 初期建议设为 false，只检测不修复
+      auto_fix_severity:
+        - low
+      require_approval_severity:
+        - medium
+        - high
+      max_concurrent_fixes: 3
+
+    github:
+      enabled: false  # GitOps 功能，初期可关闭
+      organization: your-org
+      repositories:
+        k8s-manifests:
+          name: k8s-manifests
+          branch: main
+
+    notifications:
+      teams:
+        enabled: false  # 如需通知，设置为 true 并配置 webhook
+      email:
+        enabled: false
+
+    grafana:
+      enabled: false
+
+    logging:
+      level: INFO  # DEBUG, INFO, WARNING, ERROR
+      format: json  # json 或 text
+
+    metrics:
+      enabled: true  # Prometheus 指标
+      port: 9090
+      path: /metrics

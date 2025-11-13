@@ -1,0 +1,173 @@
+---
+# Deployment for OpsAgent
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opsagent
+  namespace: ops-system
+  labels:
+    app: opsagent
+    component: ops-automation
+    version: v1.0.0
+spec:
+  replicas: 1  # 单实例运行，避免重复检测
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: opsagent
+      component: ops-automation
+  template:
+    metadata:
+      labels:
+        app: opsagent
+        component: ops-automation
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: opsagent
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: opsagent
+          image: opsagent:latest  # 替换为你的镜像仓库地址
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 18080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+
+          env:
+            # 如果需要 AWS 凭证
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: opsagent-secrets
+                  key: aws-access-key-id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opsagent-secrets
+                  key: aws-secret-access-key
+                  optional: true
+
+            # 如果需要 Azure 凭证
+            - name: AZURE_SUBSCRIPTION_ID
+              valueFrom:
+                secretKeyRef:
+                  name: opsagent-secrets
+                  key: azure-subscription-id
+                  optional: true
+
+            # 如果需要 GitHub Token
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: opsagent-secrets
+                  key: github-token
+                  optional: true
+
+            # 通知配置（可选）
+            - name: TEAMS_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: opsagent-secrets
+                  key: teams-webhook-url
+                  optional: true
+
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/.cache
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 18080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 18080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false  # Python 需要写临时文件
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: config
+          configMap:
+            name: opsagent-config
+            defaultMode: 0644
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+
+      # 调度配置
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: opsagent
+                topologyKey: kubernetes.io/hostname
+
+      # 容忍度配置（如果需要在特定节点运行）
+      # tolerations:
+      #   - key: "dedicated"
+      #     operator: "Equal"
+      #     value: "ops"
+      #     effect: "NoSchedule"
+
+      # 节点选择器（如果需要在特定节点运行）
+      # nodeSelector:
+      #   node-role: ops-tools
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

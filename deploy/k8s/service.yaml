@@ -1,0 +1,49 @@
+---
+# Service for OpsAgent API
+apiVersion: v1
+kind: Service
+metadata:
+  name: opsagent
+  namespace: ops-system
+  labels:
+    app: opsagent
+    component: ops-automation
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector:
+    app: opsagent
+    component: ops-automation
+  ports:
+    - name: http
+      port: 80
+      targetPort: 18080
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  sessionAffinity: None
+
+---
+# ServiceMonitor for Prometheus Operator (可选)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opsagent
+  namespace: ops-system
+  labels:
+    app: opsagent
+    component: ops-automation
+spec:
+  selector:
+    matchLabels:
+      app: opsagent
+      component: ops-automation
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics

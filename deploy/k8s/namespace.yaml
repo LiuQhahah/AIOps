@@ -1,0 +1,10 @@
+---
+# Dedicated namespace for OpsAgent
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ops-system
+  labels:
+    name: ops-system
+    app: opsagent
+    environment: production
