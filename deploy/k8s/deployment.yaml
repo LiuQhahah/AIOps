@@ -41,8 +41,10 @@ spec:
 
       containers:
         - name: opsagent
-          image: opsagent:latest  # 替换为你的镜像仓库地址
-          imagePullPolicy: IfNotPresent
+          # GitHub Actions 会自动更新这个镜像地址
+          # 格式: {DOCKER_USERNAME}/opsagent:{tag}
+          image: opsagent:latest
+          imagePullPolicy: Always
 
           ports:
             - name: http
