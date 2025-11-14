@@ -41,6 +41,7 @@ class DetectionConfig(BaseSettings):
 class RemediationConfig(BaseSettings):
     """Remediation configuration."""
     enabled: bool = True
+    dry_run: bool = True  # 默认开启 dry run 模式，只记录不执行
     auto_fix_severity: List[str] = ["low"]
     require_approval_severity: List[str] = ["medium", "high"]
     max_concurrent_fixes: int = 3
