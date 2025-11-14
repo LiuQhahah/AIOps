@@ -5,7 +5,7 @@ name: ops-agent-test
 # Multi-node cluster for realistic testing
 nodes:
   - role: control-plane
-    image: aws.registry.trendmicro.com/etscache/kindest/node:v1.28.0
+    image: kindest/node:v1.28.0
     kubeadmConfigPatches:
     - |
       kind: InitConfiguration
@@ -22,12 +22,12 @@ nodes:
       protocol: TCP
 
   - role: worker
-    image: aws.registry.trendmicro.com/etscache/kindest/node:v1.28.0
+    image: kindest/node:v1.28.0
     labels:
       tier: backend
 
   - role: worker
-    image: aws.registry.trendmicro.com/etscache/kindest/node:v1.28.0
+    image: kindest/node:v1.28.0
     labels:
       tier: frontend
 
