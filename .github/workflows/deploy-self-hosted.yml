@@ -1,0 +1,164 @@
+name: Build and Deploy (Self-Hosted)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # 支持手动触发
+
+env:
+  # 如果使用 Docker Hub
+  REGISTRY: docker.io
+  IMAGE_NAME: opsagent
+  # 如果使用私有仓库，修改为: your-registry.com/opsagent
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to Kubernetes
+    runs-on: self-hosted  # 使用 self-hosted runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: vars
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          IMAGE_TAG="${IMAGE_NAME}:${GITHUB_REF_NAME}-${SHORT_SHA}"
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "Building image: ${IMAGE_TAG}"
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ steps.vars.outputs.image_tag }} .
+          docker tag ${{ steps.vars.outputs.image_tag }} ${IMAGE_NAME}:latest
+
+      - name: Push to registry (optional)
+        if: ${{ vars.PUSH_TO_REGISTRY == 'true' }}
+        run: |
+          # 如果需要推送到远程仓库
+          echo "Pushing image to registry..."
+          docker push ${{ steps.vars.outputs.image_tag }}
+          docker push ${IMAGE_NAME}:latest
+
+      - name: Verify kubectl access
+        run: |
+          echo "Verifying cluster access..."
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl get namespace ops-system || kubectl create namespace ops-system
+
+      - name: Create or update secrets (if configured)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
+        run: |
+          kubectl create secret generic opsagent-secrets \
+            --from-literal=aws-access-key-id="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            --from-literal=aws-secret-access-key="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            --from-literal=github-token="${{ secrets.GH_TOKEN }}" \
+            --namespace=ops-system \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy RBAC
+        run: |
+          kubectl apply -f deploy/k8s/rbac.yaml
+          echo "✅ RBAC deployed"
+
+      - name: Deploy ConfigMap
+        run: |
+          kubectl apply -f deploy/k8s/configmap.yaml
+          echo "✅ ConfigMap deployed"
+
+      - name: Update deployment with new image
+        run: |
+          IMAGE_TAG="${{ steps.vars.outputs.image_tag }}"
+          echo "Deploying image: ${IMAGE_TAG}"
+
+          # 更新 deployment
+          kubectl set image deployment/opsagent \
+            opsagent=${IMAGE_TAG} \
+            -n ops-system \
+            --record 2>/dev/null || kubectl apply -f deploy/k8s/deployment.yaml
+
+          echo "✅ Deployment updated"
+
+      - name: Deploy Service
+        run: |
+          kubectl apply -f deploy/k8s/service.yaml
+          echo "✅ Service deployed"
+
+      - name: Wait for rollout
+        run: |
+          echo "Waiting for deployment to be ready..."
+          kubectl rollout status deployment/opsagent -n ops-system --timeout=5m
+          echo "✅ Rollout completed"
+
+      - name: Verify deployment
+        run: |
+          echo ""
+          echo "=== Deployment Status ==="
+          kubectl get deployment opsagent -n ops-system
+
+          echo ""
+          echo "=== Pods Status ==="
+          kubectl get pods -n ops-system -l app=opsagent
+
+          echo ""
+          echo "=== Service Status ==="
+          kubectl get svc opsagent -n ops-system
+
+          echo ""
+          echo "=== Recent Events ==="
+          kubectl get events -n ops-system --sort-by='.lastTimestamp' | tail -10
+
+      - name: Health check
+        run: |
+          echo "Checking application health..."
+          POD_NAME=$(kubectl get pods -n ops-system -l app=opsagent -o jsonpath='{.items[0].metadata.name}')
+
+          if [ -n "$POD_NAME" ]; then
+            echo "Pod: $POD_NAME"
+            kubectl wait --for=condition=ready pod/$POD_NAME -n ops-system --timeout=60s
+
+            echo "Testing health endpoint..."
+            kubectl exec -n ops-system $POD_NAME -- curl -f http://localhost:18080/health || echo "⚠️  Health check endpoint not ready yet"
+          else
+            echo "❌ No pods found"
+            exit 1
+          fi
+
+      - name: Show logs
+        if: always()
+        run: |
+          echo ""
+          echo "=== Application Logs (last 50 lines) ==="
+          kubectl logs -n ops-system -l app=opsagent --tail=50 || echo "No logs available"
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo ""
+          echo "========================================="
+          echo "✅ Deployment Successful!"
+          echo "========================================="
+          echo "Image: ${{ steps.vars.outputs.image_tag }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "========================================="
+
+          # 可以添加通知逻辑
+          # 例如: curl -X POST $WEBHOOK_URL -d "Deployment successful"
+
+      - name: Deployment failed
+        if: failure()
+        run: |
+          echo ""
+          echo "========================================="
+          echo "❌ Deployment Failed!"
+          echo "========================================="
+          echo "Please check the logs above for errors"
+          echo "========================================="
