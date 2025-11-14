@@ -201,13 +201,19 @@ jobs:
           echo "- **App Version**: ${{ steps.version.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Registry**: ${{ env.REGISTRY }}/${REPO_OWNER}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🚀 Installation Command" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 First Time Installation" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "helm install opsagent oci://${{ env.REGISTRY }}/${REPO_OWNER}/opsagent --version ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "helm install opsagent oci://${{ env.REGISTRY }}/${REPO_OWNER}/opsagent --version ${{ steps.version.outputs.version }} --namespace opsagent --create-namespace" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔄 Upgrade Existing Installation" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "helm upgrade opsagent oci://${{ env.REGISTRY }}/${REPO_OWNER}/opsagent --version ${{ steps.version.outputs.version }} --namespace opsagent" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📍 Package Location" >> $GITHUB_STEP_SUMMARY
-          echo "https://github.com/${{ github.repository }}/pkgs/container/opsagent" >> $GITHUB_STEP_SUMMARY
+          echo "- **Helm Chart**: https://github.com/${{ github.repository }}/pkgs/container/opsagent" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Image**: https://github.com/${{ github.repository }}/pkgs/container/opsagent" >> $GITHUB_STEP_SUMMARY
 
   # 可选：构建并推送 Docker 镜像
   build-docker:
