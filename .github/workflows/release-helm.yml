@@ -102,17 +102,20 @@ jobs:
 
           CHART_FILE="opsagent-${{ steps.version.outputs.version }}.tgz"
 
+          # GHCR 要求 repository 名称必须小写
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+
           # 登录到 Helm registry
           echo "${{ secrets.GITHUB_TOKEN }}" | \
             helm registry login ${{ env.REGISTRY }} \
             --username ${{ github.actor }} \
             --password-stdin
 
-          # 推送到 GHCR
-          helm push $CHART_FILE oci://${{ env.REGISTRY }}/${{ github.repository_owner }}
+          # 推送到 GHCR（使用小写的 owner 名称）
+          helm push $CHART_FILE oci://${{ env.REGISTRY }}/${REPO_OWNER}
 
           echo "✅ Chart pushed successfully!"
-          echo "📍 Location: oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/opsagent:${{ steps.version.outputs.version }}"
+          echo "📍 Location: oci://${{ env.REGISTRY }}/${REPO_OWNER}/opsagent:${{ steps.version.outputs.version }}"
 
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
@@ -125,7 +128,8 @@ jobs:
         id: instructions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          REPO="${{ github.repository_owner }}"
+          # GHCR 要求小写
+          REPO=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
 
           cat > installation.md <<EOF
           ## 🎉 Helm Chart Released!
@@ -181,17 +185,20 @@ jobs:
 
       - name: Summary
         run: |
+          # GHCR 要求小写
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+
           echo "# 🎉 Helm Chart Release Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📦 Chart Details" >> $GITHUB_STEP_SUMMARY
           echo "- **Name**: opsagent" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **App Version**: ${{ steps.version.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Registry**: ${{ env.REGISTRY }}/${{ github.repository_owner }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry**: ${{ env.REGISTRY }}/${REPO_OWNER}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🚀 Installation Command" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "helm install opsagent oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/opsagent --version ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "helm install opsagent oci://${{ env.REGISTRY }}/${REPO_OWNER}/opsagent --version ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📍 Package Location" >> $GITHUB_STEP_SUMMARY

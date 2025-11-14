@@ -204,6 +204,31 @@ https://github.com/LiuQhahah/AIOps/pkgs/container/opsagent
 # - 权限不足 → 检查 Settings → Actions → Workflow permissions
 ```
 
+### 问题 1.5: invalid_reference: invalid repository
+
+**错误信息**:
+```
+Error: invalid_reference: invalid repository
+```
+
+**原因**: GitHub Container Registry (GHCR) 要求 repository 名称必须**全部小写**。如果你的 GitHub 用户名包含大写字母（如 `LiuQhahah`），直接使用会导致错误。
+
+**解决方案**: workflow 文件已经修复，使用 `tr` 命令将用户名转换为小写：
+```bash
+REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+helm push $CHART_FILE oci://ghcr.io/${REPO_OWNER}
+```
+
+**正确的 URL 格式**:
+- ❌ 错误: `oci://ghcr.io/LiuQhahah/opsagent`
+- ✅ 正确: `oci://ghcr.io/liuqhahah/opsagent`
+
+**验证方法**:
+```bash
+# 安装时使用小写
+helm install opsagent oci://ghcr.io/liuqhahah/opsagent
+```
+
 ### 问题 2: 找不到发布的 Chart
 
 ```bash
