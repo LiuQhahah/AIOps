@@ -58,12 +58,14 @@ jobs:
           BUILD_NUMBER=$(git rev-list --count HEAD)
 
           # 生成版本号（始终包含构建号，确保每次都是唯一的）
-          # 使用 SemVer 预发布版本格式：MAJOR.MINOR.PATCH-buildNumber
+          # 从 Chart.yaml 提取 MAJOR.MINOR
+          MAJOR_MINOR=$(echo "$CHART_VERSION" | cut -d. -f1-2)
+
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            # main 分支: 使用基础版本-构建号 (如 1.0.0-123)
-            VERSION="${CHART_VERSION}-${BUILD_NUMBER}"
+            # main 分支: 使用 MAJOR.MINOR.BUILD_NUMBER (如 1.0.14)
+            VERSION="${MAJOR_MINOR}.${BUILD_NUMBER}"
           else
-            # 其他分支: 使用基础版本-分支.构建号 (如 1.0.0-dev.123)
+            # 其他分支: 使用预发布格式 (如 1.0.0-dev.14)
             BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
             VERSION="${CHART_VERSION}-${BRANCH_NAME}.${BUILD_NUMBER}"
           fi

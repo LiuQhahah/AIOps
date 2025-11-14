@@ -55,7 +55,7 @@ helm upgrade opsagent oci://ghcr.io/liuqhahah/opsagent \
 
 # 3. Upgrade to specific version
 helm upgrade opsagent oci://ghcr.io/liuqhahah/opsagent \
-  --version 1.0.0.45 \
+  --version 1.0.45 \
   --namespace opsagent
 
 # 4. Verify upgrade
