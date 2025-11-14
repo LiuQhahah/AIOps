@@ -9,7 +9,8 @@ replicaCount: 1
 image:
   # 使用 GitHub Container Registry (GHCR)
   # 注意：repository 名称必须小写
-  repository: ghcr.io/liuqhahah/aiops
+  # 镜像名称与 Helm Chart 名称保持一致
+  repository: ghcr.io/liuqhahah/opsagent
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""

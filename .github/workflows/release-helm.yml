@@ -57,12 +57,14 @@ jobs:
           # 获取提交次数（作为构建号）
           BUILD_NUMBER=$(git rev-list --count HEAD)
 
-          # 生成版本号: Chart版本-buildNumber (如 1.0.0-123)
-          VERSION="${CHART_VERSION}-${BUILD_NUMBER}"
-
-          # 如果是 main 分支，使用完整版本号
+          # 生成版本号（始终包含构建号，确保每次都是唯一的）
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            VERSION="${CHART_VERSION}"
+            # main 分支: 使用基础版本.构建号 (如 1.0.0.123)
+            VERSION="${CHART_VERSION}.${BUILD_NUMBER}"
+          else
+            # 其他分支: 使用基础版本-分支-构建号 (如 1.0.0-dev-123)
+            BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+            VERSION="${CHART_VERSION}-${BRANCH_NAME}-${BUILD_NUMBER}"
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -230,9 +232,9 @@ jobs:
       - name: Generate lowercase repository name
         id: repo
         run: |
-          # GHCR 要求小写
-          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          echo "name=${REPO}" >> $GITHUB_OUTPUT
+          # 使用统一的镜像名称 opsagent
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "name=${REPO_OWNER}/opsagent" >> $GITHUB_OUTPUT
 
       - name: Extract metadata
         id: meta
@@ -242,7 +244,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
-            type=sha
+            type=sha,prefix=
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
 
