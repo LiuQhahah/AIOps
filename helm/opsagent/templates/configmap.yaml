@@ -1,0 +1,48 @@
+{{- if .Values.configMap.create -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "opsagent.configMapName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "opsagent.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    # Kubernetes configuration
+    k8s:
+      in_cluster: {{ .Values.config.k8s.in_cluster }}
+      {{- if .Values.config.k8s.contexts }}
+      contexts:
+        {{- toYaml .Values.config.k8s.contexts | nindent 8 }}
+      {{- end }}
+
+    # Detection configuration
+    detection:
+      interval: {{ .Values.config.detection.interval }}
+
+    # Remediation configuration
+    remediation:
+      enabled: {{ .Values.config.remediation.enabled }}
+      dry_run: {{ .Values.config.remediation.dry_run }}
+
+    # Logging configuration
+    logging:
+      level: {{ .Values.config.logging.level }}
+      format: {{ .Values.config.logging.format }}
+
+    {{- if .Values.config.aws.enabled }}
+    # AWS configuration
+    aws:
+      enabled: true
+      region: {{ .Values.config.aws.region }}
+      resources:
+        {{- toYaml .Values.config.aws.resources | nindent 8 }}
+    {{- end }}
+
+    {{- if .Values.config.azure.enabled }}
+    # Azure configuration
+    azure:
+      enabled: true
+      subscription_id: {{ .Values.config.azure.subscription_id }}
+    {{- end }}
+{{- end }}

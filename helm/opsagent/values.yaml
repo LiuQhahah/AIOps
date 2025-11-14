@@ -1,0 +1,298 @@
+# Default values for opsagent
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of replicas (recommended: 1 to avoid duplicate detection)
+replicaCount: 1
+
+# Image configuration
+image:
+  repository: opsagent
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+# Image pull secrets (for private registries)
+imagePullSecrets: []
+# - name: myregistrykey
+
+# Override the name of the chart
+nameOverride: ""
+fullnameOverride: ""
+
+# Service Account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# RBAC configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    http:
+      port: 80
+      targetPort: 18080
+      protocol: TCP
+    metrics:
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: opsagent.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: opsagent-tls
+  #    hosts:
+  #      - opsagent.local
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# Autoscaling configuration (not recommended for OpsAgent)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity: {}
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 18080
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 18080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+# Application configuration
+config:
+  # Kubernetes configuration
+  k8s:
+    # Use in-cluster config (should be true when running in K8s)
+    in_cluster: true
+    # Kubernetes contexts (leave empty to use in-cluster config)
+    contexts: []
+
+  # Detection configuration
+  detection:
+    # Detection interval in seconds
+    interval: 300
+
+  # Remediation configuration
+  remediation:
+    # Enable/disable auto-remediation
+    enabled: false
+    # Dry-run mode (only log, don't execute)
+    dry_run: true
+
+  # Logging configuration
+  logging:
+    # Log level: DEBUG, INFO, WARNING, ERROR
+    level: INFO
+    # Log format: json or text
+    format: json
+
+  # AWS configuration (optional)
+  aws:
+    enabled: false
+    # AWS region
+    region: us-east-1
+    # AWS resources to monitor
+    resources:
+      rds:
+        enabled: false
+      kinesis:
+        enabled: false
+
+  # Azure configuration (optional)
+  azure:
+    enabled: false
+    subscription_id: ""
+
+# Secrets configuration
+secrets:
+  # Create secrets from values
+  create: false
+
+  # AWS credentials (if aws.enabled is true)
+  aws:
+    accessKeyId: ""
+    secretAccessKey: ""
+
+  # Azure credentials (if azure.enabled is true)
+  azure:
+    subscriptionId: ""
+    clientId: ""
+    clientSecret: ""
+    tenantId: ""
+
+  # GitHub token (for GitOps remediation)
+  github:
+    token: ""
+
+  # Notification webhooks
+  notifications:
+    teamsWebhookUrl: ""
+    slackWebhookUrl: ""
+
+# Use existing secret instead of creating one
+existingSecret: ""
+
+# ConfigMap configuration
+configMap:
+  # Create ConfigMap from config values
+  create: true
+
+# Volumes configuration
+volumes:
+  # Additional volumes to mount
+  extra: []
+  # - name: custom-config
+  #   configMap:
+  #     name: custom-config
+
+# Volume mounts configuration
+volumeMounts:
+  # Additional volume mounts
+  extra: []
+  # - name: custom-config
+  #   mountPath: /app/custom-config
+  #   readOnly: true
+
+# Environment variables
+env:
+  # Additional environment variables
+  extra: []
+  # - name: CUSTOM_VAR
+  #   value: "custom-value"
+
+# Monitoring and observability
+monitoring:
+  # Enable Prometheus ServiceMonitor (requires Prometheus Operator)
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    # Additional labels for ServiceMonitor
+    labels: {}
+
+# NetworkPolicy configuration
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress:
+    # Allow DNS
+    - to:
+      - namespaceSelector: {}
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      ports:
+      - protocol: UDP
+        port: 53
+    # Allow Kubernetes API
+    - to:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 443
+      - protocol: TCP
+        port: 6443
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Strategy for deployment updates
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# Priority class name
+priorityClassName: ""
+
+# Extra labels to add to all resources
+labels: {}
+
+# Extra annotations to add to all resources
+annotations: {}

@@ -1,0 +1,47 @@
+apiVersion: v2
+name: opsagent
+description: A Helm chart for OpsAgent - AI-powered Operations Automation Platform
+type: application
+
+# Chart version (this is the version of the Helm chart itself)
+version: 1.0.0
+
+# Application version (this is the version of the application being deployed)
+appVersion: "1.0.0"
+
+# Keywords for searching in Helm repositories
+keywords:
+  - kubernetes
+  - operations
+  - automation
+  - aiops
+  - monitoring
+  - detection
+  - remediation
+
+# Maintainers
+maintainers:
+  - name: OpsAgent Team
+    email: ops@example.com
+
+# Home page
+home: https://github.com/your-org/opsagent
+
+# Source code repository
+sources:
+  - https://github.com/your-org/opsagent
+
+# Icon (optional)
+# icon: https://example.com/opsagent-icon.png
+
+# Dependencies (if any)
+# dependencies:
+#   - name: postgresql
+#     version: 12.x.x
+#     repository: https://charts.bitnami.com/bitnami
+#     condition: postgresql.enabled
+
+# Annotations for additional metadata
+annotations:
+  category: Operations
+  licenses: Apache-2.0

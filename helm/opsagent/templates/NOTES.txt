@@ -1,0 +1,136 @@
+🎉 OpsAgent has been deployed to {{ .Release.Namespace }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }} -n {{ .Release.Namespace }}
+  $ helm get all {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+📊 Deployment Information:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Release Name:      {{ .Release.Name }}
+  Namespace:         {{ .Release.Namespace }}
+  Chart Version:     {{ .Chart.Version }}
+  App Version:       {{ .Chart.AppVersion }}
+  Replicas:          {{ .Values.replicaCount }}
+  Service Type:      {{ .Values.service.type }}
+
+📍 Accessing OpsAgent:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  Application URL: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "opsagent.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Visit http://$NODE_IP:$NODE_PORT to access OpsAgent"
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        Watch the status with:
+
+        kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "opsagent.fullname" . }}
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "opsagent.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "Visit http://$SERVICE_IP:{{ .Values.service.ports.http.port }} to access OpsAgent"
+{{- else if contains "ClusterIP" .Values.service.type }}
+
+  🔗 Port Forwarding Method:
+
+  Run the following command to forward the service port to your local machine:
+
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "opsagent.fullname" . }} 18080:{{ .Values.service.ports.http.port }}
+
+  Then access OpsAgent at:
+
+  • API:     http://localhost:18080
+  • Health:  http://localhost:18080/health
+  • Metrics: http://localhost:9090/metrics
+{{- end }}
+
+🔍 Monitoring & Logs:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  View pods:
+  $ kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "opsagent.name" . }}
+
+  View logs:
+  $ kubectl logs -f -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "opsagent.name" . }}
+
+  Describe deployment:
+  $ kubectl describe deployment -n {{ .Release.Namespace }} {{ include "opsagent.fullname" . }}
+
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+  Prometheus ServiceMonitor is enabled. Metrics will be scraped automatically.
+{{- end }}
+
+⚙️  Configuration:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Detection Interval:  {{ .Values.config.detection.interval }}s
+  Remediation Enabled: {{ .Values.config.remediation.enabled }}
+  {{- if .Values.config.remediation.enabled }}
+  Dry-Run Mode:        {{ .Values.config.remediation.dry_run }}
+  {{- end }}
+  Log Level:           {{ .Values.config.logging.level }}
+
+{{- if .Values.config.aws.enabled }}
+  ☁️  AWS Integration: Enabled (Region: {{ .Values.config.aws.region }})
+{{- end }}
+{{- if .Values.config.azure.enabled }}
+  ☁️  Azure Integration: Enabled
+{{- end }}
+
+⚠️  Important Notes:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if not .Values.config.remediation.enabled }}
+  ⚠️  Auto-remediation is DISABLED. Issues will only be detected and logged.
+{{- else }}
+  {{- if .Values.config.remediation.dry_run }}
+  ⚠️  Remediation is in DRY-RUN mode. No actual changes will be made.
+  {{- else }}
+  🚨 Auto-remediation is ENABLED and will make changes to your cluster!
+     Make sure you've reviewed the configuration carefully.
+  {{- end }}
+{{- end }}
+
+{{- if eq .Values.replicaCount 1.0 }}
+  ℹ️  Running with {{ .Values.replicaCount }} replica to avoid duplicate detections.
+{{- else }}
+  ⚠️  Running with {{ .Values.replicaCount }} replicas. This may cause duplicate detections.
+     Consider setting replicaCount to 1.
+{{- end }}
+
+{{- if not .Values.rbac.create }}
+  ⚠️  RBAC resources are not created. Make sure you have configured the necessary permissions manually.
+{{- end }}
+
+{{- if and (not .Values.secrets.create) (not .Values.existingSecret) }}
+  ⚠️  No secrets configured. If you need AWS/Azure credentials or notifications,
+     either set secrets.create=true or provide existingSecret.
+{{- end }}
+
+📚 Documentation:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  For more information, visit:
+  {{ .Chart.Home }}
+
+🎯 Next Steps:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Check pod status:     kubectl get pods -n {{ .Release.Namespace }}
+  2. View application logs: kubectl logs -f -n {{ .Release.Namespace }} -l app=opsagent
+  3. Test health endpoint:  kubectl exec -n {{ .Release.Namespace }} deployment/{{ include "opsagent.fullname" . }} -- curl http://localhost:18080/health
+
+{{- if .Values.config.remediation.enabled }}
+  4. Monitor detections:    kubectl logs -f -n {{ .Release.Namespace }} -l app=opsagent | grep "issues_found"
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Happy Operations! 🚀
