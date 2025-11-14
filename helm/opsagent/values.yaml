@@ -7,7 +7,9 @@ replicaCount: 1
 
 # Image configuration
 image:
-  repository: opsagent
+  # 使用 GitHub Container Registry (GHCR)
+  # 注意：repository 名称必须小写
+  repository: ghcr.io/liuqhahah/aiops
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
