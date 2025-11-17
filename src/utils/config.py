@@ -5,18 +5,18 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
 
-class K8sConfig(BaseSettings):
+class K8sConfig(BaseModel):
     """Kubernetes configuration."""
     in_cluster: bool = False
     kubeconfig: Optional[str] = None
     contexts: List[Dict[str, Any]] = []
 
 
-class AWSConfig(BaseSettings):
+class AWSConfig(BaseModel):
     """AWS configuration."""
     enabled: bool = True
     profile: Optional[str] = None
@@ -25,20 +25,20 @@ class AWSConfig(BaseSettings):
     resources: Dict[str, Any] = {}
 
 
-class AzureConfig(BaseSettings):
+class AzureConfig(BaseModel):
     """Azure configuration."""
     enabled: bool = True
     subscriptions: List[Dict[str, Any]] = []
     resources: Dict[str, Any] = {}
 
 
-class DetectionConfig(BaseSettings):
+class DetectionConfig(BaseModel):
     """Detection engine configuration."""
     interval: int = 300
     parallel_workers: int = 5
 
 
-class RemediationConfig(BaseSettings):
+class RemediationConfig(BaseModel):
     """Remediation configuration."""
     enabled: bool = True
     dry_run: bool = True  # 默认开启 dry run 模式，只记录不执行
@@ -47,7 +47,7 @@ class RemediationConfig(BaseSettings):
     max_concurrent_fixes: int = 3
 
 
-class GitHubConfig(BaseSettings):
+class GitHubConfig(BaseModel):
     """GitHub configuration."""
     enabled: bool = True
     mode: str = "remote"  # "remote" or "local"
@@ -56,26 +56,26 @@ class GitHubConfig(BaseSettings):
     repositories: Dict[str, Any] = {}
 
 
-class NotificationsConfig(BaseSettings):
+class NotificationsConfig(BaseModel):
     """Notifications configuration."""
     teams: Dict[str, Any] = {}
     email: Dict[str, Any] = {}
 
 
-class GrafanaConfig(BaseSettings):
+class GrafanaConfig(BaseModel):
     """Grafana configuration."""
     enabled: bool = False
     url: Optional[str] = None
     api_key: Optional[str] = None
 
 
-class LoggingConfig(BaseSettings):
+class LoggingConfig(BaseModel):
     """Logging configuration."""
     level: str = "INFO"
     format: str = "json"
 
 
-class MetricsConfig(BaseSettings):
+class MetricsConfig(BaseModel):
     """Metrics configuration."""
     enabled: bool = True
     port: int = 9090
