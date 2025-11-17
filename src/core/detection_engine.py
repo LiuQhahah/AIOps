@@ -21,29 +21,49 @@ class DetectionEngine:
         """Initialize all enabled detectors."""
         detectors = []
 
+        self.logger.info(
+            "Initializing detectors",
+            k8s_contexts=len(self.config.k8s.contexts) if self.config.k8s.contexts else 0,
+            aws_enabled=self.config.aws.enabled,
+            azure_enabled=self.config.azure.enabled
+        )
+
         # K8s detectors
         if self.config.k8s.contexts:
-            from src.detectors.k8s.pod_resources import PodResourceDetector
-            detectors.append(PodResourceDetector(self.config))
-            self.logger.info("K8s detectors initialized")
+            try:
+                from src.detectors.k8s.pod_resources import PodResourceDetector
+                detectors.append(PodResourceDetector(self.config))
+                self.logger.info("K8s detectors initialized", count=1)
+            except Exception as e:
+                self.logger.error("Failed to initialize K8s detectors", error=str(e), exc_info=True)
 
         # AWS detectors
         if self.config.aws.enabled:
+            aws_detector_count = 0
             if self.config.aws.resources.get("rds", {}).get("enabled"):
-                from src.detectors.aws.rds_mysql import RDSMySQLDetector
-                detectors.append(RDSMySQLDetector(self.config))
+                try:
+                    from src.detectors.aws.rds_mysql import RDSMySQLDetector
+                    detectors.append(RDSMySQLDetector(self.config))
+                    aws_detector_count += 1
+                except Exception as e:
+                    self.logger.error("Failed to initialize RDS detector", error=str(e), exc_info=True)
 
             if self.config.aws.resources.get("kinesis", {}).get("enabled"):
-                from src.detectors.aws.kinesis_shards import KinesisShardDetector
-                detectors.append(KinesisShardDetector(self.config))
+                try:
+                    from src.detectors.aws.kinesis_shards import KinesisShardDetector
+                    detectors.append(KinesisShardDetector(self.config))
+                    aws_detector_count += 1
+                except Exception as e:
+                    self.logger.error("Failed to initialize Kinesis detector", error=str(e), exc_info=True)
 
-            self.logger.info("AWS detectors initialized")
+            self.logger.info("AWS detectors initialized", count=aws_detector_count)
 
         # Azure detectors
         if self.config.azure.enabled:
             # Azure detectors will be added here
-            self.logger.info("Azure detectors initialized")
+            self.logger.info("Azure detectors initialized", count=0)
 
+        self.logger.info("Detector initialization complete", total_detectors=len(detectors))
         return detectors
 
     async def run_detection(self) -> List[Issue]:
