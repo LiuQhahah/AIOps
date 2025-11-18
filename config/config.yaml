@@ -1,10 +1,8 @@
 environment: production
 
 k8s:
-  in_cluster: true
-  contexts:
-    - name: prod-cluster
-      enabled: true
+  in_cluster: true  # Auto-detect and monitor the current cluster when running as pod
+  contexts: []      # Leave empty when using in_cluster mode
 
 aws:
   enabled: true

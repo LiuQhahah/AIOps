@@ -14,9 +14,7 @@ data:
 
     k8s:
       in_cluster: true  # 在集群内运行时设置为 true
-      contexts:
-        - name: in-cluster
-          enabled: true
+      contexts: []      # in_cluster 模式下留空即可
 
     aws:
       enabled: false  # 如需检测 AWS 资源，设置为 true

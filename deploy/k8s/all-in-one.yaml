@@ -82,9 +82,7 @@ data:
     environment: production
     k8s:
       in_cluster: true
-      contexts:
-        - name: in-cluster
-          enabled: true
+      contexts: []
     detection:
       interval: 300
       parallel_workers: 5

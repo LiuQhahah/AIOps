@@ -29,7 +29,8 @@ class DetectionEngine:
         )
 
         # K8s detectors
-        if self.config.k8s.contexts:
+        # Initialize if running in-cluster OR if contexts are configured
+        if self.config.k8s.in_cluster or self.config.k8s.contexts:
             try:
                 from src.detectors.k8s.pod_resources import PodResourceDetector
                 detectors.append(PodResourceDetector(self.config))
